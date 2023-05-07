@@ -1,1 +1,0 @@
-#define FAV_NUM 5
