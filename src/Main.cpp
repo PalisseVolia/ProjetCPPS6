@@ -11,8 +11,12 @@ using namespace chrono_literals;
 namespace fs = filesystem;
 
 // Tableaux des fichiers des dossiers à synchroniser
+static vector<string> TokenizedPathOne;
+static vector<string> TokenizedPathTwo;
 static vector<string> TabFilesOneOld;
 static vector<string> TabFilesTwoOld;
+static vector<string> FileNamesOne;
+static vector<string> FileNamesTwo;
 static vector<string> TabFilesOne;
 static vector<string> TabFilesTwo;
 
@@ -22,23 +26,148 @@ static fs::path dirPathTwo("C:/Users/vpali/Desktop/DESTINATION");
 
 // Fonctions
 void init();
+void GetFileNames();
 void Sync(int Indicator);
+void TokenizePath(int i);
 int CompareVersion();
 string GetDirFilePaths(const fs::path &dirPath, vector<string> &TabFiles);
+
+// temp fonction
+void Affiche(int Indicator);
+void AfficheFileNames(int Indicator);
+void AfficheTokenizedPath(int Indicator);
 
 int main()
 {
     // Initialisation
     init();
+    Affiche(1);
+    Affiche(2);
+    AfficheFileNames(1);
 
-    // Boucle infinie
-    while (true)
+    // string temp;
+    // cin >> temp;
+
+    // Affiche(1);
+    // Affiche(2);
+
+    // // Boucle infinie
+    // while (true)
+    // {
+    //     sleep_for(1s);
+    //     Sync(CompareVersion());
+    // }
+
+    // return 0;
+}
+
+// Synchronisation en fonction du dossier modifié
+void Sync(int Indicator)
+{
+    GetFileNames();
+    int DiffPos;
+    // suppression des fichiers du dossier plus ancien et copie du nouveau
+    if (Indicator == 1)
     {
-        sleep_for(1s);
-        Sync(CompareVersion());
+        for (int i = 0; i < FileNamesOne.size(); i++)
+        {
+            if (FileNamesOne[i] != FileNamesTwo[i])
+            {
+                DiffPos = i;
+                break;
+            }
+        }
+        }
+    if (Indicator == 2)
+    {
+        fs::remove_all(dirPathOne);
+        fs::copy(dirPathTwo, dirPathOne, fs::copy_options::recursive);
     }
+}
 
-    return 0;
+// void Sync(int Indicator)
+// {
+//     string newpathOne = dirPathOne.string();
+//     string newpathTwo = dirPathTwo.string();
+//     // suppression des fichiers du dossier plus ancien et copie du nouveau
+//     if (Indicator == 1)
+//     {
+//         for (int i = 0; i < TabFilesOne[i].size(); i++)
+//         {
+//             if (TabFilesOne[i] != TabFilesTwo[i])
+//             {
+//                 TokenizePath(i);
+
+//                 for (int j = 0; j < TokenizedPathOne.size() - 1; j++)
+//                 {
+//                     newpathOne = newpathOne + "\\" + TokenizedPathOne[j];
+//                     newpathTwo = newpathTwo + "\\" + TokenizedPathOne[j];
+//                 }
+//                 fs::remove_all(newpathOne);
+//             }
+//         }
+//     }
+//     if (Indicator == 2)
+//     {
+//         fs::remove_all(dirPathOne);
+//         fs::copy(dirPathTwo, dirPathOne, fs::copy_options::recursive);
+//     }
+// }
+
+// void Sync(int Indicator)
+// {
+//     // suppression des fichiers du dossier plus ancien et copie du nouveau
+//     if (Indicator == 1)
+//     {
+//         fs::remove_all(dirPathTwo);
+//         fs::copy(dirPathOne, dirPathTwo, fs::copy_options::recursive);
+//     }
+//     if (Indicator == 2)
+//     {
+//         fs::remove_all(dirPathOne);
+//         fs::copy(dirPathTwo, dirPathOne, fs::copy_options::recursive);
+//     }
+// }
+
+void GetFileNames()
+{
+    FileNamesOne.clear();
+    FileNamesTwo.clear();
+
+    for (int i = 0; i < TabFilesOne.size(); i++)
+    {
+        TokenizePath(i);
+        FileNamesOne.push_back(TokenizedPathOne[TokenizedPathOne.size() - 1]);
+    }
+    for (int i = 0; i < TabFilesTwo.size(); i++)
+    {
+        TokenizePath(i);
+        FileNamesTwo.push_back(TokenizedPathTwo[TokenizedPathTwo.size() - 1]);
+    }
+}
+
+void TokenizePath(int i)
+{
+    TokenizedPathOne.clear();
+    TokenizedPathTwo.clear();
+
+    string temp;
+
+    temp = TabFilesOne[i];
+    while (temp.find("\\") != string::npos)
+    {
+        TokenizedPathOne.push_back(temp.substr(0, temp.find("\\")));
+        temp = temp.substr(temp.find("\\") + 1);
+    }
+    TokenizedPathOne.push_back(temp);
+
+    temp = TabFilesTwo[i];
+    while (temp.find("\\") != string::npos)
+    {
+        TokenizedPathTwo.push_back(temp.substr(0, temp.find("\\")));
+        temp = temp.substr(temp.find("\\") + 1);
+    }
+    TokenizedPathTwo.push_back(temp);
 }
 
 // Initialisation
@@ -53,24 +182,8 @@ void init()
     TabFilesTwo.clear();
     GetDirFilePaths(dirPathTwo, TabFilesTwo);
 
-    // Dossier 1 à la priorité à l'initialisation
-    Sync(1);
-}
-
-// Synchronisation en fonction du dossier modifié
-void Sync(int Indicator)
-{
-    // suppression des fichiers du dossier plus ancien et copie du nouveau
-    if (Indicator == 1)
-    {
-        fs::remove_all(dirPathTwo);
-        fs::copy(dirPathOne, dirPathTwo, fs::copy_options::recursive);
-    }
-    if (Indicator == 2)
-    {
-        fs::remove_all(dirPathOne);
-        fs::copy(dirPathTwo, dirPathOne, fs::copy_options::recursive);
-    }
+    // Dossier 1 à la priorité à l'initialisation TODO: enlever comm
+    // Sync(1);
 }
 
 // Recherche de modifications dans les dossiers
@@ -135,4 +248,81 @@ string GetDirFilePaths(const fs::path &dirPath, vector<string> &TabFiles)
     }
 
     return ("OK");
+}
+
+// temp fonction
+void AfficheFileNames(int Indicator)
+{
+    if (Indicator == 1)
+    {
+        cout << "Dossier 1" << endl;
+        for (int i = 0; i < FileNamesOne.size(); i++)
+        {
+            cout << FileNamesOne[i] << endl;
+        }
+    }
+    if (Indicator == 2)
+    {
+        cout << "Dossier 2" << endl;
+        for (int i = 0; i < FileNamesTwo.size(); i++)
+        {
+            cout << FileNamesTwo[i] << endl;
+        }
+    }
+}
+
+void AfficheTokenizedPath(int Indicator)
+{
+    if (Indicator == 1)
+    {
+        cout << "Path 1" << endl;
+        for (int i = 0; i < TokenizedPathOne.size(); i++)
+        {
+            cout << TokenizedPathOne[i] << endl;
+        }
+    }
+    if (Indicator == 2)
+    {
+        cout << "Path 2" << endl;
+        for (int i = 0; i < TokenizedPathTwo.size(); i++)
+        {
+            cout << TokenizedPathTwo[i] << endl;
+        }
+    }
+}
+
+void Affiche(int Indicator)
+{
+    if (Indicator == 1)
+    {
+        cout << "Dossier 1" << endl;
+        for (int i = 0; i < TabFilesOne.size(); i++)
+        {
+            cout << TabFilesOne[i] << endl;
+        }
+    }
+    if (Indicator == 2)
+    {
+        cout << "Dossier 2" << endl;
+        for (int i = 0; i < TabFilesTwo.size(); i++)
+        {
+            cout << TabFilesTwo[i] << endl;
+        }
+    }
+    if (Indicator == 11)
+    {
+        cout << "Dossier 1 Old Ver" << endl;
+        for (int i = 0; i < TabFilesOneOld.size(); i++)
+        {
+            cout << TabFilesOneOld[i] << endl;
+        }
+    }
+    if (Indicator == 22)
+    {
+        cout << "Dossier 2 Old Ver" << endl;
+        for (int i = 0; i < TabFilesTwoOld.size(); i++)
+        {
+            cout << TabFilesTwoOld[i] << endl;
+        }
+    }
 }
