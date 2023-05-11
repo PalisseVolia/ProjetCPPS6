@@ -77,7 +77,7 @@ void Sync(int Indicator)
                 break;
             }
         }
-        }
+    }
     if (Indicator == 2)
     {
         fs::remove_all(dirPathOne);
@@ -251,22 +251,23 @@ string GetDirFilePaths(const fs::path &dirPath, vector<string> &TabFiles)
 }
 
 // temp fonction
-void AfficheFileNames(int Indicator)
+
+void Affiche(int Indicator)
 {
     if (Indicator == 1)
     {
         cout << "Dossier 1" << endl;
-        for (int i = 0; i < FileNamesOne.size(); i++)
+        for (int i = 0; i < TabFilesOne.size(); i++)
         {
-            cout << FileNamesOne[i] << endl;
+            cout << TabFilesOne[i] << endl;
         }
     }
     if (Indicator == 2)
     {
         cout << "Dossier 2" << endl;
-        for (int i = 0; i < FileNamesTwo.size(); i++)
+        for (int i = 0; i < TabFilesTwo.size(); i++)
         {
-            cout << FileNamesTwo[i] << endl;
+            cout << TabFilesTwo[i] << endl;
         }
     }
 }
