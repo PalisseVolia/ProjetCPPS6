@@ -22,16 +22,17 @@ static vector<string> TabLastModifiedOne;
 static vector<string> TabLastModifiedTwo;
 
 // Path des dossiers à synchroniser
-// static fs::path dirPathOne("C:/Users/vpali/Desktop/TEST");
-// static fs::path dirPathTwo("C:/Users/vpali/Desktop/DESTINATION");
+static fs::path dirPathOne("C:/Users/vpali/Desktop/TEST");
+static fs::path dirPathTwo("C:/Users/vpali/Desktop/DESTINATION");
+static fs::path dirPathTEMP("..TEMP");
 
 // TOOD: temp path pc portable
-static fs::path dirPathOne("C:/Users/Palisse Volia/Desktop/TEST");
-static fs::path dirPathTwo("C:/Users/Palisse Volia/Desktop/DESTINATION");
+// static fs::path dirPathOne("C:/Users/Palisse Volia/Desktop/TEST");
+// static fs::path dirPathTwo("C:/Users/Palisse Volia/Desktop/DESTINATION");
 
 // Fonctions
 void init();
-void Sync(int Indicator);
+int Sync(int Indicator);
 int CompareVersion();
 string GetDirFilePaths(const fs::path &dirPath, vector<string> &TabFiles, vector<string> &TabLastModified);
 
@@ -43,7 +44,7 @@ int main()
     // Boucle infinie
     while (true)
     {
-        sleep_for(1s);
+        sleep_for(3s);
         Sync(CompareVersion());
     }
 
@@ -82,6 +83,8 @@ int main()
 // Initialisation
 void init()
 {
+    fs::remove_all(dirPathTEMP);
+
     // Initialisation des tableaux de path fichiers
     TabFilesOneOld.clear();
     TabFilesOne.clear();
@@ -100,114 +103,136 @@ void init()
 }
 
 // Synchronisation en fonction du dossier modifié
-void Sync(int Indicator)
+int Sync(int Indicator)
 {
     // suppression des fichiers du dossier plus ancien et copie du nouveau
     if (Indicator == 1)
     {
-        fs::remove_all(dirPathTwo);
-        fs::copy(dirPathOne, dirPathTwo, fs::copy_options::recursive);
-
-        // TODO: clean & en faire une méthode
-        for (int i = 0; i < TabFilesTwo.size(); i++)
+        try
         {
-            // Date de dernière modification des fichiers
-            std::string filePath = dirPathTwo.string() + "/" + TabFilesTwo[i];
+            // TODO: clean & en faire une méthode
+            fs::remove_all(dirPathTEMP);
+            fs::copy(dirPathOne, dirPathTEMP, fs::copy_options::recursive);
+            fs::remove_all(dirPathTEMP);
+            fs::remove_all(dirPathTwo);
+            fs::copy(dirPathOne, dirPathTwo, fs::copy_options::recursive);
 
-            // Convert file path to wide character string
-            std::wstring wideFilePath(filePath.begin(), filePath.end());
-            HANDLE fileHandle = CreateFileW(wideFilePath.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-            if (fileHandle != INVALID_HANDLE_VALUE)
+            // TODO: clean & en faire une méthode
+            for (int i = 0; i < TabFilesTwo.size(); i++)
             {
-                FILETIME newLastWriteTime;
-                SYSTEMTIME newSystemTime;
+                // Date de dernière modification des fichiers
+                string filePath = dirPathTwo.string() + "/" + TabFilesTwo[i];
 
-                // Set the new last modified date
-                newSystemTime.wYear = 2000; // Modify the desired year
-                newSystemTime.wMonth = 1;   // Modify the desired month
-                newSystemTime.wDay = 1;     // Modify the desired day
-                newSystemTime.wHour = 0;    // Modify the desired hour
-                newSystemTime.wMinute = 0;  // Modify the desired minute
-                newSystemTime.wSecond = 0;  // Modify the desired second
-                newSystemTime.wMilliseconds = 0;
+                // Convert file path to wide character string
+                wstring wideFilePath(filePath.begin(), filePath.end());
+                HANDLE fileHandle = CreateFileW(wideFilePath.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-                if (SystemTimeToFileTime(&newSystemTime, &newLastWriteTime))
+                if (fileHandle != INVALID_HANDLE_VALUE)
                 {
-                    if (SetFileTime(fileHandle, NULL, NULL, &newLastWriteTime))
+                    FILETIME newLastWriteTime;
+                    SYSTEMTIME newSystemTime;
+
+                    // Set the new last modified date
+                    newSystemTime.wYear = 2000; // Modify the desired year
+                    newSystemTime.wMonth = 1;   // Modify the desired month
+                    newSystemTime.wDay = 1;     // Modify the desired day
+                    newSystemTime.wHour = 0;    // Modify the desired hour
+                    newSystemTime.wMinute = 0;  // Modify the desired minute
+                    newSystemTime.wSecond = 0;  // Modify the desired second
+                    newSystemTime.wMilliseconds = 0;
+
+                    if (SystemTimeToFileTime(&newSystemTime, &newLastWriteTime))
                     {
-                        std::wcout << "Last modified date modified successfully." << std::endl;
+                        if (SetFileTime(fileHandle, NULL, NULL, &newLastWriteTime))
+                        {
+                            std::wcout << L"Last modified date modified successfully." << std::endl;
+                        }
+                        else
+                        {
+                            std::cerr << "Failed to set the new last modified date." << std::endl;
+                        }
                     }
                     else
                     {
-                        std::cerr << "Failed to set the new last modified date." << std::endl;
+                        std::cerr << "Failed to convert the system time to file time." << std::endl;
                     }
+
+                    CloseHandle(fileHandle);
                 }
                 else
                 {
-                    std::cerr << "Failed to convert the system time to file time." << std::endl;
+                    std::cerr << "Failed to open the file: " << filePath << std::endl;
                 }
-
-                CloseHandle(fileHandle);
             }
-            else
-            {
-                std::cerr << "Failed to open the file: " << filePath << std::endl;
-            }
+        }
+        catch (const fs::filesystem_error &ex)
+        {
+            cout << "Erreur lors de la copie" << endl;
         }
     }
     if (Indicator == 2)
     {
-        fs::remove_all(dirPathOne);
-        fs::copy(dirPathTwo, dirPathOne, fs::copy_options::recursive);
-
-        for (int i = 0; i < TabFilesOne.size(); i++)
+        try
         {
-            // Date de dernière modification des fichiers
-            std::string filePath = dirPathOne.string() + "/" + TabFilesOne[i];
+            fs::remove_all(dirPathTEMP);
+            fs::copy(dirPathTwo, dirPathTEMP, fs::copy_options::recursive);
+            fs::remove_all(dirPathTEMP);
+            fs::remove_all(dirPathOne);
+            fs::copy(dirPathTwo, dirPathOne, fs::copy_options::recursive);
 
-            // Convert file path to wide character string
-            std::wstring wideFilePath(filePath.begin(), filePath.end());
-            HANDLE fileHandle = CreateFileW(wideFilePath.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-            if (fileHandle != INVALID_HANDLE_VALUE)
+            for (int i = 0; i < TabFilesOne.size(); i++)
             {
-                FILETIME newLastWriteTime;
-                SYSTEMTIME newSystemTime;
+                // Date de dernière modification des fichiers
+                std::string filePath = dirPathOne.string() + "/" + TabFilesOne[i];
 
-                // Set the new last modified date
-                newSystemTime.wYear = 2000; // Modify the desired year
-                newSystemTime.wMonth = 1;   // Modify the desired month
-                newSystemTime.wDay = 1;     // Modify the desired day
-                newSystemTime.wHour = 0;    // Modify the desired hour
-                newSystemTime.wMinute = 0;  // Modify the desired minute
-                newSystemTime.wSecond = 0;  // Modify the desired second
-                newSystemTime.wMilliseconds = 0;
+                // Convert file path to wide character string
+                std::wstring wideFilePath(filePath.begin(), filePath.end());
+                HANDLE fileHandle = CreateFileW(wideFilePath.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-                if (SystemTimeToFileTime(&newSystemTime, &newLastWriteTime))
+                if (fileHandle != INVALID_HANDLE_VALUE)
                 {
-                    if (SetFileTime(fileHandle, NULL, NULL, &newLastWriteTime))
+                    FILETIME newLastWriteTime;
+                    SYSTEMTIME newSystemTime;
+
+                    // Set the new last modified date
+                    newSystemTime.wYear = 2000; // Modify the desired year
+                    newSystemTime.wMonth = 1;   // Modify the desired month
+                    newSystemTime.wDay = 1;     // Modify the desired day
+                    newSystemTime.wHour = 0;    // Modify the desired hour
+                    newSystemTime.wMinute = 0;  // Modify the desired minute
+                    newSystemTime.wSecond = 0;  // Modify the desired second
+                    newSystemTime.wMilliseconds = 0;
+
+                    if (SystemTimeToFileTime(&newSystemTime, &newLastWriteTime))
                     {
-                        std::wcout << "Last modified date modified successfully." << std::endl;
+                        if (SetFileTime(fileHandle, NULL, NULL, &newLastWriteTime))
+                        {
+                            std::wcout << "Last modified date modified successfully." << std::endl;
+                        }
+                        else
+                        {
+                            std::cerr << "Failed to set the new last modified date." << std::endl;
+                        }
                     }
                     else
                     {
-                        std::cerr << "Failed to set the new last modified date." << std::endl;
+                        std::cerr << "Failed to convert the system time to file time." << std::endl;
                     }
+
+                    CloseHandle(fileHandle);
                 }
                 else
                 {
-                    std::cerr << "Failed to convert the system time to file time." << std::endl;
+                    std::cerr << "Failed to open the file: " << filePath << std::endl;
                 }
-
-                CloseHandle(fileHandle);
-            }
-            else
-            {
-                std::cerr << "Failed to open the file: " << filePath << std::endl;
             }
         }
+        catch (const fs::filesystem_error &ex)
+        {
+            cout << "Erreur lors de la copie" << endl;
+        }
     }
+    return 0;
 }
 
 // Recherche de modifications dans les dossiers
